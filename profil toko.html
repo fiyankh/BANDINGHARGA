@@ -1,0 +1,478 @@
+<<!DOCTYPE html>
+<html>
+<head>
+	<title></title>
+</head>
+<body>
+<div class='basic-products basic-products--grid'>
+<product-list v-bind:current-product-layout='currentProductLayout' v-bind:products='products'></product-list>
+</div>
+<template v-if='promotedProducts(2).length &gt; 0'>
+<section class='endorsed-products endorsed-products--sem'>
+<promoted-product-heading></promoted-product-heading>
+<product-list v-bind:products='promotedProducts(2)' v-bind:promoted-product-tracker-data="promotedProductTrackerData('bottom')"></product-list>
+</section>
+</template>
+</template>
+<blank-slate v-bind:current-search-url='currentSearchUrl' v-bind:is-error='isError' v-bind:related-keywords='relatedKeywords' v-if='productNotFound &amp;&amp; !isLoading || isError'></blank-slate>
+<related-keywords v-bind:related-keywords='relatedKeywords'></related-keywords>
+<related-products v-bind:current-keyword='currentKeyword' v-if='productNotFound &amp;&amp; !isLoading'></related-products>
+<template v-if='!isCategoryLv1Page()'>
+<div class='product-pagination-wrapper'>
+<pagination v-bind:current-search-params-str='currentSearchParamsStr' v-bind:pagination='pagination' v-on:currentpagechanged='handlePageChange'></pagination>
+<product-feed-button base-url='/feed/feed.rss' v-bind:current-category-id='currentCategoryId'></product-feed-button>
+</div>
+</template>
+</div>
+</div>
+</section>
+</div>
+<div class='container-grid js-seo-crap'>
+<div class='row-grid'>
+<div class='col-12--12 u-mrgn-bottom--6'>
+
+
+
+</div>
+</div>
+</div>
+
+<script id='vc__blank-slate-template' type='text/x-template'>
+<div class='content-segment blank-slate'>
+<p class='u-mrgn-top--2 u-txt--fair'>
+{{message}}
+<div class='u-mrgn-bottom--2' v-if='isError'>
+<a class='u-txt--fair' v-bind:href='currentSearchUrl'>
+Coba lagi
+</a>
+</div>
+<template v-if='keywordSuggestion'>
+Apakah yang anda maksud&nbsp;<a v-bind:href='keywordUrl'>{{keywordSuggestion}}</a>?
+</template>
+</p>
+</div>
+</script>
+
+<script id='vc__category-tree-template' type='text/x-template'>
+<div class='product-filter-field-group'>
+<h3 class='entry-v-nav__section-heading'>Kategori</h3>
+<div class='category-tree'>
+<a href='/products' v-on:click="handleLinkClick('', '', $event)">Semua kategori</a>
+<ul class='tree'>
+<template v-for='category in categories'>
+<category-tree-item v-bind:category='category' v-bind:current-category-id='currentCategoryId' v-bind:current-search-params-str='currentSearchParamsStr' v-bind:current-store-username='currentStoreUsername' v-bind:key='category.id'></category-tree-item>
+</template>
+</ul>
+</div>
+</div>
+</script>
+<script id='vc__category-tree-item-template' type='text/x-template'>
+<li>
+<template v-if='category.children.length &gt; 0'>
+<div class='tree-item tree-item--has-children' v-bind:class="{'is-tree-item--expanded': isCategoryExpanded}" v-bind:ref="'vc__category-tree-item-' + category.id" v-on:click='handleItemClick(category.id, $event)'>
+<a class='tree__link' v-bind:href='categoryUrl' v-on:click='handleLinkClick(category.id, categorySlug, $event)' v-on:mouseout='handleMouseOut(category.id)' v-on:mouseover='handleMouseOver(category.id)'>
+{{category.name}}
+</a>
+<ul class='tree-children' v-bind:class="{'is-tree-children--expanded': isCategoryExpanded}" v-bind:ref="'vc__category-tree-children-' + category.id">
+<template v-for='childCategory in category.children'>
+<category-tree-item v-bind:category='childCategory' v-bind:current-category-id='currentCategoryId' v-bind:current-search-params-str='currentSearchParamsStr' v-bind:current-store-username='currentStoreUsername'></category-tree-item>
+</template>
+</ul>
+</div>
+</template>
+<template v-if='category.children.length === 0'>
+<div class='tree-item'>
+<a class='tree__link' v-bind:href='categoryUrl' v-on:click='handleLinkClick(category.id, categorySlug, $event)'>
+{{category.name}}
+</a>
+</div>
+</template>
+</li>
+</script>
+
+<script id='vc__product-attributes-template' type='text/x-template'>
+<div>
+<div class='product-filter-field-group' v-bind:key='attribute.name' v-for='attribute in attributes'>
+<h3 class='entry-v-nav__section-heading'>{{attribute.display_name}}</h3>
+<div class='entry-v-nav-framer'>
+<div class='entry-v-nav-control' v-for='option in attribute.options'>
+<a class='entry-v-nav__link' v-bind:class="{'u-txt--bold': attributeOptionSelected(attribute.name, option)}" v-bind:href='attributeUrl(attribute.name, option)' v-on:click='handleClick({attributeLabel: attribute.name, attributeValue: option}, $event)'>
+{{option}}
+</a>
+</div>
+</div>
+</div>
+</div>
+</script>
+
+<script id='vc__product-layout-selector-template' type='text/x-template'>
+<div class='u-mrgn-right--1'>
+<div class='c-fld c-fld--inline'>
+Mode tampilan
+</div>
+<div class='c-fld c-fld--inline'>
+<a class='entry-layout-option entry-layout-option--grid' v-bind:class="{'entry-layout-option--grid-selected': currentProductLayout === 'grid'}" v-bind:href="layoutSelectionUrl('grid')" v-on:click.prevent="handleLayoutSelectionClick('grid')">
+Grid
+</a>
+</div>
+<div class='c-fld c-fld--inline'>
+<a class='entry-layout-option entry-layout-option--list' v-bind:class="{'entry-layout-option--list-selected': currentProductLayout === 'list'}" v-bind:href="layoutSelectionUrl('list')" v-on:click.prevent="handleLayoutSelectionClick('list')">
+List
+</a>
+</div>
+</div>
+</script>
+
+<script id='vc__product-sorter-template' type='text/x-template'>
+<div class='c-fld--inline'>
+<div class='c-inp-grp-table'>
+<div class='c-inp__ctx'>Urutkan</div>
+<select class='c-inp c-inp--small' v-model='productSortChoice'>
+<option v-bind:value='option.value' v-for='option in productSortOptions'>
+{{option.text}}
+</option>
+</select>
+</div>
+</div>
+</script>
+
+<script id='vc__product-filter-template' type='text/x-template'>
+<div>
+<div class='product-filter-field-group'>
+<h3 class='entry-v-nav__section-heading'>Kondisi</h3>
+<div class='entry-v-nav-control'>
+<label class='entry-v-nav__label'>
+<input type='checkbox' v-bind:false-value="'0'" v-bind:true-value="'1'" v-model='searchNew'>
+Baru
+</label>
+</div>
+<div class='entry-v-nav-control'>
+<label class='entry-v-nav__label'>
+<input type='checkbox' v-bind:false-value="'0'" v-bind:true-value="'1'" v-model='used'>
+Bekas
+</label>
+</div>
+</div>
+<div class='product-filter-field-group'>
+<h3 class='entry-v-nav__section-heading'>Gratis Biaya Kirim</h3>
+<div class='entry-v-nav-control'>
+<button class='entry-v-nav__reset-btn' title='Reset' v-if='free_shipping_coverage' v-on:click="handleReset(['free_shipping_coverage'])">
+<span class='c-icon c-icon--close u-txt--bold'></span>
+</button>
+<select class='c-inp c-inp--small' v-model='free_shipping_coverage'>
+<option disabled value=''>Pilih Daerah</option>
+<option v-bind:value='option.idx' v-for='option in freeShippingCoverageOptions'>
+{{option.value}}
+</option>
+</select>
+</div>
+</div>
+<div class='product-filter-field-group'>
+<h3 class='entry-v-nav__section-heading'>Dikirim Dari</h3>
+<div class='entry-v-nav-control'>
+<button class='entry-v-nav__reset-btn' title='Reset' v-if='province' v-on:click="handleReset(['city', 'province'])">
+<span class='c-icon c-icon--close u-txt--bold'></span>
+</button>
+<select class='c-inp c-inp--small' v-model='province'>
+<option disabled value=''>Pilih Wilayah/Provinsi</option>
+<optgroup Label='Wilayah'>
+<option v-for='province in additionalProvinceOptions'>
+{{province}}
+</option>
+</optgroup>
+<optgroup Label='Provinsi'>
+<option v-for='province in provinceOptions'>
+{{province}}
+</option>
+</optgroup>
+</select>
+</div>
+<div class='entry-v-nav-control'>
+<button class='entry-v-nav__reset-btn' title='Reset' v-if='city' v-on:click="handleReset(['city'])">
+<span class='c-icon c-icon--close u-txt--bold'></span>
+</button>
+<select class='c-inp c-inp--small' v-model='city'>
+<option disabled value=''>Pilih Kota/Kabupaten</option>
+<option v-for='city in cityOptions'>
+{{city}}
+</option>
+</select>
+</div>
+</div>
+<div class='product-filter-field-group'>
+<h3 class='entry-v-nav__section-heading'>Jasa Pengiriman</h3>
+<div class='entry-v-nav-control'>
+<button class='entry-v-nav__reset-btn' title='Reset' v-if='courier' v-on:click="handleReset(['courier'])">
+<span class='c-icon c-icon--close u-txt--bold'></span>
+</button>
+<select class='c-inp c-inp--small' v-model='courier'>
+<option disabled value=''>Pilih Jasa Pengiriman</option>
+<option v-for='courier in meta.couriers'>
+{{courier.carrier}}
+</option>
+</select>
+</div>
+</div>
+<div class='product-filter-field-group'>
+<h3 class='entry-v-nav__section-heading'>Rentang Harga</h3>
+<div class='product-filter__price-range entry-v-nav-control'>
+<input class='c-inp c-inp--small force-number-input' placeholder='Min' v-model.number='price_min' v-on:keyup.enter="handleParamChange({paramLabel: 'search[price_min]', paramValue: price_min})">
+<input class='c-inp c-inp--small u-mrgn-top--1 force-number-input' placeholder='Max' v-model.number='price_max' v-on:keyup.enter="handleParamChange({paramLabel: 'search[price_max]', paramValue: price_max})">
+</div>
+<button class='btn btn--gray btn--small u-mrgn-top--1' v-on:click.prevent="handleParamChange([{paramLabel: 'search[price_min]', paramValue: price_min}, {paramLabel: 'search[price_max]', paramValue: price_max}])">
+Tampilkan
+</button>
+</div>
+<div class='product-filter-field-group'>
+<h3 class='entry-v-nav__section-heading'>Rating Barang</h3>
+<div class='product-filter__rating rating-slider'>
+<div class='rating-slider__handler' ref='vc__product-filter-rating-slider'></div>
+<div class='rating-slider__pips'>
+<div class='rating-slider__label rating-slider__label--star' v-bind:class="{'is-checked': isRatingGteLessThan(6)}" v-on:click='handleRatingClick(5)'>
+<span class='c-icon c-icon--star'></span>
+<span class='c-icon c-icon--star'></span>
+<span class='c-icon c-icon--star'></span>
+<span class='c-icon c-icon--star'></span>
+<span class='c-icon c-icon--star'></span>
+</div>
+<div class='rating-slider__label rating-slider__label--star' v-bind:class="{'is-checked': isRatingGteLessThan(5)}" v-on:click='handleRatingClick(4)'>
+<span class='c-icon c-icon--star'></span>
+<span class='c-icon c-icon--star'></span>
+<span class='c-icon c-icon--star'></span>
+<span class='c-icon c-icon--star'></span>
+</div>
+<div class='rating-slider__label rating-slider__label--star' v-bind:class="{'is-checked': isRatingGteLessThan(4)}" v-on:click='handleRatingClick(3)'>
+<span class='c-icon c-icon--star'></span>
+<span class='c-icon c-icon--star'></span>
+<span class='c-icon c-icon--star'></span>
+</div>
+<div class='rating-slider__label rating-slider__label--star' v-bind:class="{'is-checked': isRatingGteLessThan(3)}" v-on:click='handleRatingClick(2)'>
+<span class='c-icon c-icon--star'></span>
+<span class='c-icon c-icon--star'></span>
+</div>
+<div class='rating-slider__label rating-slider__label--star' v-bind:class="{'is-checked': isRatingGteLessThan(2)}" v-on:click='handleRatingClick(1)'>
+<span class='c-icon c-icon--star'></span>
+</div>
+<div class='rating-slider__label rating-slider__label--text' v-on:click='handleRatingClick(0)'>
+<span>Lihat Semua</span>
+</div>
+</div>
+</div>
+</div>
+<div class='product-filter-field-group'>
+<h3 class='entry-v-nav__section-heading'>Lainnya</h3>
+<div class='entry-v-nav-control'>
+<label class='entry-v-nav__label'>
+<input type='checkbox' v-bind:false-value="'0'" v-bind:true-value="'1'" v-model='todays_deal'>
+Diskon
+</label>
+</div>
+<div class='entry-v-nav-control'>
+<label class='entry-v-nav__label'>
+<input type='checkbox' v-bind:false-value="'0'" v-bind:true-value="'1'" v-model='installment'>
+Cicilan
+</label>
+</div>
+<div class='entry-v-nav-control'>
+<label class='entry-v-nav__label'>
+<input type='checkbox' v-bind:false-value="'0'" v-bind:true-value="'1'" v-model='wholesale'>
+Grosir
+</label>
+</div>
+<div class='entry-v-nav-control'>
+<label class='entry-v-nav__label'>
+<input type='checkbox' v-bind:false-value="'0'" v-bind:true-value="'1'" v-model='top_seller'>
+Top Seller
+</label>
+</div>
+<div class='entry-v-nav-control'>
+<label class='entry-v-nav__label'>
+<input type='checkbox' v-bind:false-value="'0'" v-bind:true-value="'1'" v-model='premium_seller'>
+Premium Seller
+<span class='entry-v-nav__badge entry-v-nav__badge--premium'></span>
+</label>
+</div>
+</div>
+</div>
+</script>
+
+<script id='vc__promoted-product-heading-template' type='text/x-template'>
+<h2 class='endorsed-products__heading endorsed-products__heading--sem'>
+Promoted Products
+<span class='autooltip label-tips' data-autooltip-content='#tips_push_keyword' data-autooltip-position='bottom' data-autooltip-trigger='click' ref='vc__promoted-product__tooltip-trigger'>?</span>
+<div class='is-hidden'>
+<div class='tips-box' id='tips_push_keyword'>
+<p>
+Promosikan barang dengan fitur
+<strong>Promoted Push</strong>
+agar lebih mudah ditemukan oleh calon pembeli melalui hasil pencarian dan kategori produk. Biaya promosi yang dikeluarkan akan sebanding dengan peningkatan penjualan.
+</p>
+<p>
+<a class='btn btn--small btn--red' href='/promotion_features?from=promoted_section' target='_blank'>Promosikan Barangmu Sekarang</a>
+</p>
+</div>
+</div>
+</h2>
+</script>
+
+<script id='vc__product-list-template' type='text/x-template'>
+<div>
+<ul class='products row-grid' data-module='product-list' ref='vc__product-list-products' v-if='products.length &gt; 0'>
+<li v-bind:class="{'col-12--2': currentProductLayout === 'grid'}" v-bind:key='product.id' v-for='(product, idx) in products'>
+<product-card v-bind:current-product-layout='currentProductLayout' v-bind:order='idx' v-bind:product='product' v-bind:promoted-product-tracker-data='promotedProductTrackerData' v-on:initquickview='initQuickview'></product-card>
+</li>
+</ul>
+</div>
+</script>
+
+<script id='vc__product-card-template' type='text/x-template'>
+<div v-bind:class="{'product-card': currentProductLayout === 'grid', 'product-list-item': currentProductLayout === 'list'}">
+<div class='product-display is-vue-quickview'>
+<div class='product-media'>
+<a class='product-media__link' v-bind:href='product.url' v-bind:title='product.name' v-on:click='handleProductLinkClick($event)'>
+<picture class='product-media__img'>
+<source type='image/webp' v-bind:srcset="imageUrl('webp')">
+<source type='image/jpg' v-bind:srcset='imageUrl()'>
+<img v-bind:alt='product.name' v-bind:height='imageSize' v-bind:src='imageUrl()' v-bind:width='imageSize'>
+</picture>
+</a>
+<a class='quickview__overlay' v-bind:href='product.url' v-on:click='handleProductLinkClick($event)'>
+<button class='quickview__btn btn btn--gray btn--small js-quickview__btn' v-bind:data-quickview-url='quickviewUrl' v-on:click.prevent='handleQuickviewBtnClick($event)'>
+<i class='ion ion-android-search'></i>
+quickview
+</button>
+</a>
+</div>
+<div class='product-meta' v-if="product.condition === 'Bekas'">
+<span class='product__condition product__condition--used'>
+{{product.condition}}
+</span>
+</div>
+<div class='product-description'>
+<h3>
+<a class='product__name line-clamp--2' v-bind:href='product.url' v-on:click='handleProductLinkClick($event)'>
+{{product.name}}
+</a>
+</h3>
+<product-seller v-bind:seller='product.store' v-if='product.store'></product-seller><div class='product-discount-badge product-discount-badge--active' v-if='product.deal.percentage'><span class='product-discount-percentage-amount'>{{product.deal.percentage}}</span><span class='product-discount-percentage-sign'>%</span></div><div class='product-wholesale-badge' ref='vc__product-card-wholesale-badge' v-if='product.wholesales.length &gt; 0 &amp;&amp; !product.deal.percentage'>
+Grosir
+</div>
+<div class='is-hidden' v-if='product.wholesales.length &gt; 0 &amp;&amp; !product.deal.percentage'>
+<div class='product_wholesale_price_panel' ref='vc__product-card-wholesale-price-panel'>
+<strong class='product_wholesale_price_panel__title'>Detail Harga Grosir</strong>
+<hr class='hr--compact u-hr--bleed u-mrgn-bottom--2 u-mrgn-top--2'>
+<table class='table--borderless'>
+<thead>
+<tr>
+<th>Beli</th>
+<th>Harga Satuan</th>
+</tr>
+</thead>
+<tbody>
+<tr v-for='(wholesale, index) in product.wholesales'>
+<td>
+<template v-if='product.wholesales[index + 1]'>
+{{wholesale.lower_bound}} – {{product.wholesales[index + 1].lower_bound - 1}}
+</template>
+<template v-if='!product.wholesales[index + 1]'>
+≥ {{wholesale.lower_bound}}
+</template>
+</td>
+<td>
+{{wholesale.price.BLMonefy()}}
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class='product-price'>
+<template v-if='product.deal.percentage'>
+<span class='product-price__original'>{{product.deal.original_price.BLMonefy()}}</span>
+<span class='product-price__reduced'>{{product.deal.discount_price.BLMonefy()}}</span>
+</template>
+<template v-if='!product.deal.percentage'>
+<span>{{product.price.BLMonefy()}}</span>
+</template>
+</div>
+<div class='product-installment' v-if='product.installments[0]'>
+<span>Cicilan mulai {{minimumInstallment}}/bln</span>
+</div>
+<div class='product__rating' v-if='product.rating.user_count'>
+<span class='rating' v-bind:title='product.rating.average_rate'>
+<span class='rating__star' v-bind:style="{width: (product.rating.average_rate * 100 / 5) + '%'}"></span>
+</span>
+<a class='review__aggregate'>
+<span>{{product.rating.user_count}}</span>
+</a>
+</div>
+<div class='premium--sticky-badge__silver new-premium-badge autooltip' data-autooltip-content='#badge-tooltip-content' data-autooltip-position='right' data-autooltip-trigger='hover' ref='vc__product-card-premium-badge' v-if='isPremium'>
+<div class='is-hidden'>
+<div id='badge-tooltip-content'>
+Pelapak Premium
+<a class="label-tips" href="/premium/packages/available?from=tooltip">?</a>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class='product-express-checkout'>
+<form ref="vc__product-card-express-checkout-form" novalidate="novalidate" class="item" data-no-turbolink="true" action="/cart/carts/add_product?button_type=direct_checkout&amp;express_checkout=true" accept-charset="UTF-8" method="post"><input name="utf8" type="hidden" value="&#x2713;" /><input type="hidden" name="authenticity_token" value="h3jRDcFV0mZg4A/53ywDvwYNd9AyHus2Iw9pydxrM7bFUgmTtyqawQI3m/2bKGAmpPtXE6km2ykuXY2zteirgA==" /><input name='item[product_id]' type='hidden' v-bind:value='productIdInt'>
+<input value="1" type="hidden" name="item[quantity]" id="item_quantity" />
+<button class='btn btn--medium btn--block btn--green'>Beli</button>
+</form>
+</div>
+</div>
+</script>
+
+<script id='vc__product-seller-template' type='text/x-template'>
+<div class='product-seller'>
+<div class='user-display-ultra-compact'>
+<h5 class='user__name'>
+<a v-bind:href='seller.url'>
+{{seller.name}}
+</a>
+</h5>
+<div class='user-city'>
+<a class='user-city__txt' v-bind:href='locationUrl'>
+{{seller.address.city}}
+</a>
+</div>
+<div class='user-feedback-container clearfix'>
+<div class='user-level-badge' v-if='seller.level.image_url'>
+<a v-bind:href='feedbackUrl'>
+<img height='18' v-bind:alt='seller.level.name' v-bind:src='seller.level.image_url' v-bind:title='seller.level.name' width='18'>
+</a>
+</div>
+<a class='user-feedback-summary' v-bind:href='feedbackUrl'>
+{{feedbackSummary}}
+</a>
+<div class='user-chat'>
+<a class='btn btn--gray btn--small btn--block btn-create-room js-td__message-product-button' ref='vc__product-seller-chat-btn' rel='nofollow' v-bind:data-online-toggle='dataOnlineToggle' v-bind:data-user-id='seller.id' v-bind:href='messageUrl'>
+<span class='ion-icon ion-chatbubbles'></span>
+Chat Pelapak
+</a>
+</div>
+</div>
+</div>
+</div>
+</script>
+
+<script id='vc__product-feed-button-template' type='text/x-template'>
+<div class='product-feed'>
+<a class='btn btn--orange btn--medium btn--block' title='Subscribe Product RSS' v-bind:href='feedUrl'>
+<i class='ion-social-rss'></i>
+RSS
+</a>
+</div>
+</script>
+
+<script id='vc__suggestion-keyword-template' type='text/x-template'>
+<div class='related-items related-items--search col-12--10'>
+<template v-if='keywordSuggestion'>
+Apakah yang anda maksud&nbsp;<strong><a v-bind:href='keywordUrl'>{{keywordSuggestion}}</a></strong>?
+</template>
+</div>
+</script>
+</body>
+</html>
